@@ -57,7 +57,7 @@ nav button{font-size:12px;padding:10px 2px}
 .lock{position:fixed;inset:0;background:var(--bg);z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:6px}.lock.show{display:flex}.lock input{max-width:240px;text-align:center;font-size:24px;letter-spacing:.3em}.lock .btn{max-width:240px}#lerr{color:var(--out);min-height:20px;font-size:13px}
 </style></head>
 <body>
-<div class="lock" id="lock"><h2 style="margin:0">Adhi's Expense Tracker</h2><div style="color:var(--mute)">Enter your PIN</div><input id="lp" type="password" inputmode="numeric" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')tryUnlock()"><div id="lerr"></div><button class="btn" onclick="tryUnlock()">Unlock</button><button class="lnk" onclick="forgot()">Forgot PIN?</button></div>
+<div class="lock" id="lock"><h2 style="margin:0">Adhi's Expense Tracker</h2><div style="color:var(--mute)">Enter your PIN</div><input id="lp" type="password" inputmode="numeric" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')tryUnlock()"><div id="lerr"></div><button class="btn alt" id="lbio" style="display:none" onclick="bioUnlock()">Use fingerprint</button><button class="btn" onclick="tryUnlock()">Unlock</button><button class="lnk" onclick="forgot()">Forgot PIN?</button></div>
 <main id="app"></main>
 <nav><div>
 <button data-t="home">Home</button><button data-t="hist">History</button>
@@ -157,12 +157,12 @@ function showLock(){if(!getPin())return;document.getElementById("lp").value="";l
 async function tryUnlock(){if(Date.now()<until)return lerr("Too many tries. Wait 30 seconds.");var p=getPin(),v=document.getElementById("lp").value;
  if(p&&await hp(v,p.s)===p.h){fails=0;document.getElementById("lock").classList.remove("show");document.getElementById("lp").value="";lerr("")}
  else{fails++;if(fails>=5){until=Date.now()+30000;fails=0;lerr("Too many tries. Wait 30 seconds.")}else lerr("Wrong PIN");document.getElementById("lp").value=""}}
-function forgot(){if(confirm("Forgot PIN? This erases all data on this device. You can restore from a backup afterwards.")){try{localStorage.removeItem(KEY);localStorage.removeItem(PK)}catch(e){}location.reload()}}
-function secCard(){var on=!!getPin();return'<h2>Security</h2><div class="card"><div style="color:var(--mute);font-size:13px">'+(on?"PIN lock is on. The app locks after 30 seconds away.":"Set a 4 to 8 digit PIN so only you can open the app.")+'</div>'+(on?'<label>Current PIN</label><input id="pc" type="password" inputmode="numeric" maxlength="8">':"")+'<label>'+(on?"New PIN (leave empty to remove the lock)":"New PIN")+'</label><input id="pn" type="password" inputmode="numeric" maxlength="8"><button class="btn" onclick="chPin()">'+(on?"Update PIN":"Set PIN")+'</button></div>'}
+function forgot(){if(confirm("Forgot PIN? This erases all data on this device. You can restore from a backup afterwards.")){try{localStorage.removeItem(KEY);localStorage.removeItem(PK);localStorage.removeItem("pocket_ledger_bio")}catch(e){}location.reload()}}
+function secCard0(){var on=!!getPin();return'<h2>Security</h2><div class="card"><div style="color:var(--mute);font-size:13px">'+(on?"PIN lock is on. The app locks after 30 seconds away.":"Set a 4 to 8 digit PIN so only you can open the app.")+'</div>'+(on?'<label>Current PIN</label><input id="pc" type="password" inputmode="numeric" maxlength="8">':"")+'<label>'+(on?"New PIN (leave empty to remove the lock)":"New PIN")+'</label><input id="pn" type="password" inputmode="numeric" maxlength="8"><button class="btn" onclick="chPin()">'+(on?"Update PIN":"Set PIN")+'</button></div>'}
 function accT(){return accT0()+secCard()}
 async function chPin(){var p=getPin(),n=document.getElementById("pn").value;
  if(p&&await hp(document.getElementById("pc").value,p.s)!==p.h)return alert("Current PIN is wrong.");
- if(n===""){if(!p)return alert("Enter a PIN.");localStorage.removeItem(PK);render();return alert("PIN lock removed.")}
+ if(n===""){if(!p)return alert("Enter a PIN.");localStorage.removeItem(PK);localStorage.removeItem("pocket_ledger_bio");render();return alert("PIN lock removed.")}
  if(!/^\d{4,8}$/.test(n))return alert("Use 4 to 8 digits.");
  var s=uid()+uid();localStorage.setItem(PK,JSON.stringify({s:s,h:await hp(n,s)}));render();alert("PIN saved.")}
 document.addEventListener("visibilitychange",function(){if(document.hidden)hiddenAt=Date.now();else if(hiddenAt&&Date.now()-hiddenAt>30000)showLock()});
@@ -231,6 +231,22 @@ function csvCopy(){var c=function(v){return String(v==null?"":v).replace(/[\t\r\
 function bkCopy(){var t=document.getElementById("bk");t.value=JSON.stringify(S);t.select();try{localStorage.setItem("pl_bk",String(Date.now()))}catch(e){}try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(x){}}}
 function bkRestore(){try{var d=JSON.parse(document.getElementById("bk").value);if(!d.accounts||!d.tx)throw 0;S=d;fix();save();render();alert("Restored.")}catch(e){alert("That backup text is not valid.")}}
 function accT(){return accT0()+catCard()+expCard()+secCard()}
+
+/* fingerprint unlock (WebAuthn, platform authenticator) */
+var BK="pocket_ledger_bio";
+function hasBio(){try{return !!localStorage.getItem(BK)&&!!getPin()}catch(e){return false}}
+function b64(b){return btoa(String.fromCharCode.apply(null,new Uint8Array(b)))}
+function unb64(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0)})}
+function showLock(){if(!getPin())return;document.getElementById("lp").value="";lerr("");document.getElementById("lock").classList.add("show");var b=hasBio();document.getElementById("lbio").style.display=b?"block":"none";if(b)setTimeout(bioUnlock,300)}
+async function bioOn(){try{if(!window.PublicKeyCredential||!(await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()))return alert("Fingerprint unlock is not available. Make sure a fingerprint or screen lock is set up in your phone settings.");
+ var c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:"Expense Tracker"},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:"owner",displayName:"Owner"},pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required"},timeout:60000}});
+ localStorage.setItem(BK,b64(c.rawId));render();alert("Fingerprint unlock is on.")}catch(e){alert("Could not turn on fingerprint unlock. Try again.")}}
+function bioOff(){try{localStorage.removeItem(BK)}catch(e){}render()}
+async function bioUnlock(){var id;try{id=localStorage.getItem(BK)}catch(e){}if(!id)return;
+ try{await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:"public-key",id:unb64(id)}],userVerification:"required",timeout:60000}});
+  fails=0;document.getElementById("lock").classList.remove("show");document.getElementById("lp").value="";lerr("")}catch(e){lerr("Fingerprint not recognised. Use your PIN.")}}
+function bioCard(){if(!getPin())return"";var on=hasBio();return'<div class="card" style="margin-top:10px"><b>Fingerprint unlock</b><div style="color:var(--mute);font-size:13px;margin:4px 0">'+(on?"Fingerprint unlock is on. Your PIN still works as a backup.":"Use your phone's fingerprint instead of typing the PIN. Your PIN stays as a backup.")+'</div><button class="btn'+(on?" alt":"")+'" onclick="'+(on?"bioOff()":"bioOn()")+'">'+(on?"Turn off fingerprint":"Turn on fingerprint")+'</button></div>'}
+function secCard(){return secCard0()+bioCard()}
 
 showLock();
 load();fix();render();
