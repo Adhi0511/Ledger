@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2457c5">
+<title>Pocket Ledger</title>
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#eef1f6;--card:#fff;--ink:#16202e;--mute:#667085;--line:#dde3ec;--bank:#2457c5;--cash:#16845a;--out:#c4412c;--soft:#e6ecf8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1520;--card:#18212f;--ink:#e8edf5;--mute:#93a0b4;--line:#27334a;--bank:#6e9bff;--cash:#4cc58f;--out:#ff8a73;--soft:#202c42}}
+:root[data-theme="dark"]{--bg:#0f1520;--card:#18212f;--ink:#e8edf5;--mute:#93a0b4;--line:#27334a;--bank:#6e9bff;--cash:#4cc58f;--out:#ff8a73;--soft:#202c42}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+main{max-width:480px;margin:0 auto;padding:16px 14px 110px}
+h1{font-size:13px;font-weight:600;color:var(--mute);margin:4px 0 2px}
+h2{font-size:15px;margin:22px 0 8px}
+.big{font-size:34px;font-weight:700;letter-spacing:-.02em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.pill{border-radius:10px;padding:10px 12px;background:var(--soft)}
+.pill b{display:block;font-size:19px}.pill span{font-size:12px;color:var(--mute)}
+.cashp{background:color-mix(in srgb,var(--cash) 14%,var(--card))}.cashp b{color:var(--cash)}
+.bankp b{color:var(--bank)}
+.item{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border:0}
+.item small{color:var(--mute);display:block}
+.bar{width:4px;border-radius:2px;align-self:stretch;margin-right:10px;flex:none}
+.l{display:flex;flex:1;min-width:0}.l div{min-width:0}.l b,.l small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.out{color:var(--out)}.in{color:var(--cash)}.tr{color:var(--bank)}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-top:4px}
+label{display:block;font-size:12px;color:var(--mute);margin-top:12px}
+.btn{border:0;border-radius:10px;padding:12px 16px;background:var(--bank);color:#fff;font-weight:600;width:100%;margin-top:14px;cursor:pointer}
+.btn.alt{background:var(--soft);color:var(--ink)}
+.lnk{background:none;border:0;color:var(--mute);font-size:12px;cursor:pointer;padding:4px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+nav div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr auto 1fr 1fr;align-items:center;gap:4px}
+nav button{background:none;border:0;padding:10px 4px;color:var(--mute);font-size:12.5px;cursor:pointer}
+nav button.on{color:var(--bank);font-weight:700}
+.fab{width:54px;height:54px;border-radius:50%;background:var(--bank)!important;color:#fff!important;font-size:30px!important;line-height:1;padding:0!important;margin:-22px 6px 0}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--soft);padding:4px;border-radius:12px}
+.seg button{border:0;background:none;padding:9px 2px;border-radius:9px;font-size:13px;cursor:pointer}
+.seg button.on{background:var(--card);font-weight:700}
+.sheet{position:fixed;inset:0;background:rgba(10,15,25,.5);display:none;align-items:flex-end;z-index:5}
+.sheet.show{display:flex}
+.sheet>div{background:var(--bg);width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:92%;overflow:auto}
+.amt{font-size:28px!important;font-weight:700}
+.den{display:grid;grid-template-columns:60px 1fr 80px;gap:8px;align-items:center;padding:4px 0}
+.den input{margin:0;padding:8px}.den span:last-child{text-align:right}
+.empty{color:var(--mute);padding:14px 0;text-align:center}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tabs{overflow-x:auto}
+.lock{position:fixed;inset:0;background:var(--bg);z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:6px}.lock.show{display:flex}.lock input{max-width:240px;text-align:center;font-size:24px;letter-spacing:.3em}.lock .btn{max-width:240px}#lerr{color:var(--out);min-height:20px;font-size:13px}
+</style></head>
+<body>
+<div class="lock" id="lock"><h2 style="margin:0">Pocket Ledger</h2><div style="color:var(--mute)">Enter your PIN</div><input id="lp" type="password" inputmode="numeric" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')tryUnlock()"><div id="lerr"></div><button class="btn" onclick="tryUnlock()">Unlock</button><button class="lnk" onclick="forgot()">Forgot PIN?</button></div>
+<main id="app"></main>
+<nav><div>
+<button data-t="home">Home</button><button data-t="hist">History</button>
+<button class="fab" onclick="openAdd()" aria-label="Add entry">+</button>
+<button data-t="cash">Cash</button><button data-t="acc">Accounts</button>
+</div></nav>
+<div class="sheet" id="sheet"><div id="sheetBody"></div></div>
+<script>
+var KEY="pocket_ledger_v1",S,tab="home",F={m:"",a:""},kill=null,mode="expense";
+var CAT=["Food","Groceries","Transport","Fuel","Bills","Rent","Shopping","Health","Entertainment","Work","Other"];
+var INC=["Salary","Business","Refund","Other income"];
+function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+ if(!S||!S.accounts){S={accounts:[{id:"c1",name:"Cash in hand",type:"cash",open:0},{id:"b1",name:"Bank account",type:"bank",open:0}],tx:[]}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function uid(){return Math.random().toString(36).slice(2,9)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function fmt(n){var s=n<0?"-":"";n=Math.abs(n);return s+"₹"+n.toLocaleString("en-IN",{minimumFractionDigits:Math.round(n*100)%100?2:0,maximumFractionDigits:2})}
+function acc(id){return S.accounts.filter(function(a){return a.id===id})[0]}
+function bal(id){var b=acc(id).open;S.tx.forEach(function(t){if(t.type==="income"&&t.acc===id)b+=t.amt;if(t.type==="expense"&&t.acc===id)b-=t.amt;if(t.type==="transfer"){if(t.acc===id)b-=t.amt;if(t.to===id)b+=t.amt}});return Math.round(b*100)/100}
+function sum(type){return S.accounts.filter(function(a){return a.type===type}).reduce(function(s,a){return s+bal(a.id)},0)}
+function mk(d){return d.slice(0,7)}
+function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function kind(t){if(t.type!=="transfer")return t.type;var f=acc(t.acc),o=acc(t.to);if(f&&o){if(f.type==="bank"&&o.type==="cash")return"withdrawal";if(f.type==="cash"&&o.type==="bank")return"deposit"}return"transfer"}
+function title(t){var k=kind(t);if(k==="expense"||k==="income")return t.cat||k;var f=acc(t.acc),o=acc(t.to);return(k==="withdrawal"?"Withdrawal":k==="deposit"?"Cash deposit":"Transfer")+": "+(f?f.name:"?")+" → "+(o?o.name:"?")}
+function row(t,del){var k=kind(t),c=k==="expense"?"out":k==="income"?"in":"tr",a=acc(t.acc),sg=k==="expense"?"-":k==="income"?"+":"";
+ return '<div class="item"><div class="l"><i class="bar" style="background:var(--'+(c==="out"?"out":c==="in"?"cash":"bank")+')"></i><div><b>'+esc(title(t))+'</b><small>'+esc(t.date)+(k==="expense"||k==="income"?" · "+esc(a?a.name:""):"")+(t.note?" · "+esc(t.note):"")+'</small></div></div><div style="text-align:right"><b class="'+c+'">'+sg+fmt(t.amt)+'</b>'+(del?'<br><button class="lnk" onclick="del(\''+t.id+'\')">'+(kill===t.id?"Tap again to delete":"Delete")+'</button>':"")+'</div></div>'}
+function sorted(){return S.tx.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0})}
+function render(){document.querySelectorAll("nav [data-t]").forEach(function(b){b.className=b.dataset.t===tab?"on":""});
+ var h="";if(tab==="home")h=home();else if(tab==="hist")h=hist();else if(tab==="cash")h=cashT();else h=accT();
+ var s=window.scrollY;document.getElementById("app").innerHTML=h;window.scrollTo(0,s);if(tab==="cash")den()}
+function home(){var m=mk(today()),sp=0,inc=0;S.tx.forEach(function(t){if(mk(t.date)===m){if(t.type==="expense")sp+=t.amt;if(t.type==="income")inc+=t.amt}});
+ var r=sorted().slice(0,6);
+ return '<h1>Total balance</h1><div class="big">'+fmt(sum("bank")+sum("cash"))+'</div>'+
+ '<div class="split"><div class="pill cashp"><span>Cash in hand</span><b>'+fmt(sum("cash"))+'</b></div><div class="pill bankp"><span>In banks</span><b>'+fmt(sum("bank"))+'</b></div></div>'+
+ '<div class="split"><div class="pill"><span>Spent this month</span><b class="out">'+fmt(sp)+'</b></div><div class="pill"><span>Income this month</span><b class="in">'+fmt(inc)+'</b></div></div>'+
+ '<h2>Accounts</h2><div class="card">'+S.accounts.map(function(a){return'<div class="item"><div><b>'+esc(a.name)+'</b><small>'+(a.type==="cash"?"Cash":"Bank")+'</small></div><b>'+fmt(bal(a.id))+'</b></div>'}).join("")+'</div>'+
+ '<h2>Recent</h2><div class="card">'+(r.length?r.map(function(t){return row(t)}).join(""):'<div class="empty">No entries yet. Tap + to add your first expense, income or withdrawal.</div>')+'</div>'}
+function hist(){var ms={};S.tx.forEach(function(t){ms[mk(t.date)]=1});var mm=Object.keys(ms).sort().reverse();
+ var list=sorted().filter(function(t){return(!F.m||mk(t.date)===F.m)&&(!F.a||t.acc===F.a||t.to===F.a)});
+ var out=0;list.forEach(function(t){if(t.type==="expense")out+=t.amt});
+ return '<h1>History</h1><div class="two"><select onchange="F.m=this.value;render()"><option value="">All months</option>'+mm.map(function(m){return'<option value="'+m+'"'+(F.m===m?" selected":"")+'>'+m+'</option>'}).join("")+'</select><select onchange="F.a=this.value;render()"><option value="">All accounts</option>'+S.accounts.map(function(a){return'<option value="'+a.id+'"'+(F.a===a.id?" selected":"")+'>'+esc(a.name)+'</option>'}).join("")+'</select></div>'+
+ '<p style="color:var(--mute);margin:12px 0 0">'+list.length+' entries · spent <b class="out">'+fmt(out)+'</b></p><div class="card" style="margin-top:8px">'+(list.length?list.map(function(t){return row(t,1)}).join(""):'<div class="empty">Nothing matches these filters.</div>')+'</div>'}
+function del(id){if(kill===id){S.tx=S.tx.filter(function(t){return t.id!==id});kill=null;save()}else kill=id;render()}
+var D=[500,200,100,50,20,10,5,2,1],cashSel="";
+function cashT(){var cs=S.accounts.filter(function(a){return a.type==="cash"});if(!cs.length)return'<div class="empty">Add a cash account under Accounts first.</div>';
+ if(!acc(cashSel)||acc(cashSel).type!=="cash")cashSel=cs[0].id;
+ var m=mk(today()),w=0,sp=0;S.tx.forEach(function(t){if(mk(t.date)!==m)return;var k=kind(t);if(k==="withdrawal"&&t.to===cashSel)w+=t.amt;if(k==="expense"&&t.acc===cashSel)sp+=t.amt});
+ var mv=sorted().filter(function(t){return t.acc===cashSel||t.to===cashSel}).slice(0,8);
+ return '<h1>Cash in hand</h1><div class="big in">'+fmt(bal(cashSel))+'</div>'+(cs.length>1?'<select onchange="cashSel=this.value;render()">'+cs.map(function(a){return'<option value="'+a.id+'"'+(a.id===cashSel?" selected":"")+'>'+esc(a.name)+'</option>'}).join("")+'</select>':"")+
+ '<div class="split"><div class="pill"><span>Withdrawn this month</span><b>'+fmt(w)+'</b></div><div class="pill"><span>Cash spent this month</span><b class="out">'+fmt(sp)+'</b></div></div>'+
+ '<div class="two" style="margin-top:4px"><button class="btn alt" onclick="openAdd(\'withdraw\')">Withdraw from bank</button><button class="btn alt" onclick="openAdd(\'deposit\')">Deposit cash</button></div>'+
+ '<h2>Count your cash</h2><div class="card"><div style="color:var(--mute);font-size:13px;margin-bottom:6px">Enter how many notes or coins you have. Compare with what the app expects.</div>'+
+ D.map(function(d){return'<div class="den"><b>₹'+d+'</b><input type="number" inputmode="numeric" min="0" placeholder="0" data-d="'+d+'" oninput="den()"><span id="dv'+d+'">₹0</span></div>'}).join("")+
+ '<div class="item" style="margin-top:6px"><b>Counted</b><b id="cnt">₹0</b></div><div class="item"><b>Expected</b><b>'+fmt(bal(cashSel))+'</b></div><div class="item"><b>Difference</b><b id="dif">₹0</b></div>'+
+ '<button class="btn" onclick="adjust()">Match app to counted cash</button></div>'+
+ '<h2>Recent cash movement</h2><div class="card">'+(mv.length?mv.map(function(t){return row(t)}).join(""):'<div class="empty">No cash movement yet.</div>')+'</div>'}
+function counted(){var s=0;document.querySelectorAll("[data-d]").forEach(function(i){s+=(+i.value||0)*(+i.dataset.d)});return s}
+function den(){var s=0;document.querySelectorAll("[data-d]").forEach(function(i){var v=(+i.value||0)*(+i.dataset.d);s+=v;document.getElementById("dv"+i.dataset.d).textContent=fmt(v)});
+ var c=document.getElementById("cnt");if(!c)return;c.textContent=fmt(s);var d=s-bal(cashSel),e=document.getElementById("dif");e.textContent=fmt(d);e.className=d<0?"out":d>0?"in":""}
+function adjust(){var c=counted(),d=Math.round((c-bal(cashSel))*100)/100;if(!d)return alert("Counted cash already matches the app.");
+ S.tx.push({id:uid(),date:today(),type:d>0?"income":"expense",amt:Math.abs(d),acc:cashSel,cat:"Cash adjustment",note:"From cash count"});save();render()}
+function accT0(){return '<h1>Accounts</h1><div class="card">'+S.accounts.map(function(a){var used=S.tx.some(function(t){return t.acc===a.id||t.to===a.id});
+ return'<div class="item"><div><b>'+esc(a.name)+'</b><small>'+(a.type==="cash"?"Cash":"Bank")+' · opened with '+fmt(a.open)+'</small></div><div style="text-align:right"><b>'+fmt(bal(a.id))+'</b>'+(used?"":'<br><button class="lnk" onclick="delAcc(\''+a.id+'\')">Remove</button>')+'</div></div>'}).join("")+'</div>'+
+ '<h2>Add account</h2><div class="card"><label>Name</label><input id="an" placeholder="e.g. SBI Savings, Wallet"><label>Type</label><select id="at"><option value="bank">Bank account</option><option value="cash">Cash</option></select><label>Current balance (₹)</label><input id="ao" type="number" inputmode="decimal" placeholder="0"><button class="btn" onclick="addAcc()">Add account</button></div>'+
+ '<h2>Backup</h2><div class="card"><div style="color:var(--mute);font-size:13px">Your data is stored only in this browser. Copy a backup now and then, and paste it back here to restore.</div><textarea id="bk" rows="3" placeholder="Backup text appears here"></textarea><div class="two"><button class="btn alt" onclick="bkCopy()">Copy backup</button><button class="btn alt" onclick="bkRestore()">Restore</button></div></div>'}
+function addAcc(){var n=document.getElementById("an").value.trim();if(!n)return alert("Enter an account name.");S.accounts.push({id:uid(),name:n,type:document.getElementById("at").value,open:+document.getElementById("ao").value||0});save();render()}
+function delAcc(id){S.accounts=S.accounts.filter(function(a){return a.id!==id});save();render()}
+function bkCopy(){var t=document.getElementById("bk");t.value=JSON.stringify(S);t.select();try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(x){}}}
+function bkRestore(){try{var d=JSON.parse(document.getElementById("bk").value);if(!d.accounts||!d.tx)throw 0;S=d;save();render();alert("Restored.")}catch(e){alert("That backup text is not valid.")}}
+function openAdd(m){mode=m==="withdraw"?"withdraw":m==="deposit"?"deposit":(m||mode);if(mode==="deposit"){}sheet()}
+function opts(arr,sel){return arr.map(function(a){return'<option value="'+a.id+'"'+(a.id===sel?" selected":"")+'>'+esc(a.name)+'</option>'}).join("")}
+function sheet(){var banks=S.accounts.filter(function(a){return a.type==="bank"}),cash=S.accounts.filter(function(a){return a.type==="cash"}),all=S.accounts,m=mode,h;
+ h='<div class="seg">'+[["expense","Expense"],["income","Income"],["transfer","Transfer"],["withdraw","Withdraw"]].map(function(x){return'<button class="'+((m===x[0]||(m==="deposit"&&x[0]==="transfer"))?"on":"")+'" onclick="mode=\''+x[0]+'\';sheet()">'+x[1]+'</button>'}).join("")+'</div>'+
+ '<label>Amount (₹)</label><input class="amt" id="f_amt" type="number" inputmode="decimal" placeholder="0">';
+ if(m==="expense"||m==="income"){h+='<label>'+(m==="expense"?"Paid from":"Received in")+'</label><select id="f_acc">'+opts(all,cash[0]&&cash[0].id)+'</select><label>Category</label><select id="f_cat">'+(m==="expense"?CAT:INC).map(function(c){return'<option>'+c+'</option>'}).join("")+'</select>'}
+ else{var from=m==="withdraw"?banks:all,to=m==="withdraw"?cash:all,fs=m==="deposit"?(cash[0]&&cash[0].id):(from[0]&&from[0].id),ts=m==="deposit"?(banks[0]&&banks[0].id):(to[0]&&to[0].id);
+  if(m==="transfer"&&all.length>1&&fs===ts)ts=all[1].id;
+  h+='<label>From</label><select id="f_acc">'+opts(from,fs)+'</select><label>To</label><select id="f_to">'+opts(to,ts)+'</select><label>Fee or charges (₹, optional)</label><input id="f_fee" type="number" inputmode="decimal" placeholder="0">'}
+ h+='<label>Date</label><input id="f_date" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f_note" placeholder="What was it for?"><button class="btn" onclick="submitTx()">Save</button><button class="btn alt" onclick="closeSheet()">Cancel</button>';
+ document.getElementById("sheetBody").innerHTML=h;document.getElementById("sheet").classList.add("show");setTimeout(function(){document.getElementById("f_amt").focus()},50)}
+function closeSheet(){document.getElementById("sheet").classList.remove("show")}
+function submitTx(){var amt=+document.getElementById("f_amt").value;if(!(amt>0))return alert("Enter an amount greater than 0.");
+ var m=mode==="withdraw"||mode==="deposit"?"transfer":mode,t={id:uid(),date:document.getElementById("f_date").value||today(),type:m,amt:amt,acc:document.getElementById("f_acc").value,note:document.getElementById("f_note").value.trim()};
+ if(m==="transfer"){t.to=document.getElementById("f_to").value;if(t.to===t.acc)return alert("Choose two different accounts.");var fee=+document.getElementById("f_fee").value;
+  if(bal(t.acc)<amt&&!confirm("This is more than the balance in the source account. Save anyway?"))return;
+  S.tx.push(t);if(fee>0)S.tx.push({id:uid(),date:t.date,type:"expense",amt:fee,acc:t.acc,cat:"Bank charges",note:"Fee for "+(kind(t))});}
+ else{t.cat=document.getElementById("f_cat").value;S.tx.push(t)}
+ save();closeSheet();render()}
+document.getElementById("sheet").addEventListener("click",function(e){if(e.target.id==="sheet")closeSheet()});
+document.querySelector("nav").addEventListener("click",function(e){var t=e.target.dataset&&e.target.dataset.t;if(t){tab=t;kill=null;render();window.scrollTo(0,0)}});
+
+var PK="pocket_ledger_pin",fails=0,until=0,hiddenAt=0;
+function getPin(){try{return JSON.parse(localStorage.getItem(PK))}catch(e){return null}}
+async function hp(p,salt){var k=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveBits"]);var b=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:150000,hash:"SHA-256"},k,256);return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")}
+function lerr(m){document.getElementById("lerr").textContent=m}
+function showLock(){if(!getPin())return;document.getElementById("lp").value="";lerr("");document.getElementById("lock").classList.add("show")}
+async function tryUnlock(){if(Date.now()<until)return lerr("Too many tries. Wait 30 seconds.");var p=getPin(),v=document.getElementById("lp").value;
+ if(p&&await hp(v,p.s)===p.h){fails=0;document.getElementById("lock").classList.remove("show");document.getElementById("lp").value="";lerr("")}
+ else{fails++;if(fails>=5){until=Date.now()+30000;fails=0;lerr("Too many tries. Wait 30 seconds.")}else lerr("Wrong PIN");document.getElementById("lp").value=""}}
+function forgot(){if(confirm("Forgot PIN? This erases all data on this device. You can restore from a backup afterwards.")){try{localStorage.removeItem(KEY);localStorage.removeItem(PK)}catch(e){}location.reload()}}
+function secCard(){var on=!!getPin();return'<h2>Security</h2><div class="card"><div style="color:var(--mute);font-size:13px">'+(on?"PIN lock is on. The app locks after 30 seconds away.":"Set a 4 to 8 digit PIN so only you can open the app.")+'</div>'+(on?'<label>Current PIN</label><input id="pc" type="password" inputmode="numeric" maxlength="8">':"")+'<label>'+(on?"New PIN (leave empty to remove the lock)":"New PIN")+'</label><input id="pn" type="password" inputmode="numeric" maxlength="8"><button class="btn" onclick="chPin()">'+(on?"Update PIN":"Set PIN")+'</button></div>'}
+function accT(){return accT0()+secCard()}
+async function chPin(){var p=getPin(),n=document.getElementById("pn").value;
+ if(p&&await hp(document.getElementById("pc").value,p.s)!==p.h)return alert("Current PIN is wrong.");
+ if(n===""){if(!p)return alert("Enter a PIN.");localStorage.removeItem(PK);render();return alert("PIN lock removed.")}
+ if(!/^\d{4,8}$/.test(n))return alert("Use 4 to 8 digits.");
+ var s=uid()+uid();localStorage.setItem(PK,JSON.stringify({s:s,h:await hp(n,s)}));render();alert("PIN saved.")}
+document.addEventListener("visibilitychange",function(){if(document.hidden)hiddenAt=Date.now();else if(hiddenAt&&Date.now()-hiddenAt>30000)showLock()});
+if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
+showLock();
+load();render();
+</script>
+</body></html>
