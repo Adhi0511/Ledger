@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2457c5">
-<title>Pocket Ledger</title>
+<title>Adhi's Expense Tracker</title>
 <link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{--bg:#eef1f6;--card:#fff;--ink:#16202e;--mute:#667085;--line:#dde3ec;--bank:#2457c5;--cash:#16845a;--out:#c4412c;--soft:#e6ecf8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
@@ -34,7 +34,7 @@ label{display:block;font-size:12px;color:var(--mute);margin-top:12px}
 .btn.alt{background:var(--soft);color:var(--ink)}
 .lnk{background:none;border:0;color:var(--mute);font-size:12px;cursor:pointer;padding:4px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
-nav div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr auto 1fr 1fr;align-items:center;gap:4px}
+nav div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr auto 1fr 1fr 1fr;align-items:center;gap:4px}
 nav button{background:none;border:0;padding:10px 4px;color:var(--mute);font-size:12.5px;cursor:pointer}
 nav button.on{color:var(--bank);font-weight:700}
 .fab{width:54px;height:54px;border-radius:50%;background:var(--bank)!important;color:#fff!important;font-size:30px!important;line-height:1;padding:0!important;margin:-22px 6px 0}
@@ -50,15 +50,19 @@ nav button.on{color:var(--bank);font-weight:700}
 .empty{color:var(--mute);padding:14px 0;text-align:center}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tabs{overflow-x:auto}
+nav button{font-size:12px;padding:10px 2px}
+.rb{height:7px;background:var(--soft);border-radius:4px;margin-top:5px;overflow:hidden}.rb i{display:block;height:100%;background:var(--out);border-radius:4px}.rb.g i{background:var(--cash)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chip{background:var(--soft);border-radius:999px;padding:3px 4px 3px 12px;font-size:13px}
+
 .lock{position:fixed;inset:0;background:var(--bg);z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:6px}.lock.show{display:flex}.lock input{max-width:240px;text-align:center;font-size:24px;letter-spacing:.3em}.lock .btn{max-width:240px}#lerr{color:var(--out);min-height:20px;font-size:13px}
 </style></head>
 <body>
-<div class="lock" id="lock"><h2 style="margin:0">Pocket Ledger</h2><div style="color:var(--mute)">Enter your PIN</div><input id="lp" type="password" inputmode="numeric" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')tryUnlock()"><div id="lerr"></div><button class="btn" onclick="tryUnlock()">Unlock</button><button class="lnk" onclick="forgot()">Forgot PIN?</button></div>
+<div class="lock" id="lock"><h2 style="margin:0">Adhi's Expense Tracker</h2><div style="color:var(--mute)">Enter your PIN</div><input id="lp" type="password" inputmode="numeric" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')tryUnlock()"><div id="lerr"></div><button class="btn" onclick="tryUnlock()">Unlock</button><button class="lnk" onclick="forgot()">Forgot PIN?</button></div>
 <main id="app"></main>
 <nav><div>
 <button data-t="home">Home</button><button data-t="hist">History</button>
 <button class="fab" onclick="openAdd()" aria-label="Add entry">+</button>
-<button data-t="cash">Cash</button><button data-t="acc">Accounts</button>
+<button data-t="cash">Cash</button><button data-t="rep">Reports</button><button data-t="acc">More</button>
 </div></nav>
 <div class="sheet" id="sheet"><div id="sheetBody"></div></div>
 <script>
@@ -84,7 +88,7 @@ function sorted(){return S.tx.slice().sort(function(a,b){return a.date<b.date?1:
 function render(){document.querySelectorAll("nav [data-t]").forEach(function(b){b.className=b.dataset.t===tab?"on":""});
  var h="";if(tab==="home")h=home();else if(tab==="hist")h=hist();else if(tab==="cash")h=cashT();else h=accT();
  var s=window.scrollY;document.getElementById("app").innerHTML=h;window.scrollTo(0,s);if(tab==="cash")den()}
-function home(){var m=mk(today()),sp=0,inc=0;S.tx.forEach(function(t){if(mk(t.date)===m){if(t.type==="expense")sp+=t.amt;if(t.type==="income")inc+=t.amt}});
+function home0(){var m=mk(today()),sp=0,inc=0;S.tx.forEach(function(t){if(mk(t.date)===m){if(t.type==="expense")sp+=t.amt;if(t.type==="income")inc+=t.amt}});
  var r=sorted().slice(0,6);
  return '<h1>Total balance</h1><div class="big">'+fmt(sum("bank")+sum("cash"))+'</div>'+
  '<div class="split"><div class="pill cashp"><span>Cash in hand</span><b>'+fmt(sum("cash"))+'</b></div><div class="pill bankp"><span>In banks</span><b>'+fmt(sum("bank"))+'</b></div></div>'+
@@ -163,7 +167,72 @@ async function chPin(){var p=getPin(),n=document.getElementById("pn").value;
  var s=uid()+uid();localStorage.setItem(PK,JSON.stringify({s:s,h:await hp(n,s)}));render();alert("PIN saved.")}
 document.addEventListener("visibilitychange",function(){if(document.hidden)hiddenAt=Date.now();else if(hiddenAt&&Date.now()-hiddenAt>30000)showLock()});
 if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
+/* v2: edit entries, categories, reports, search */
+var editId=null,R={m:""};
+function fix(){if(!S.cats)S.cats={};if(!S.cats.exp)S.cats.exp=CAT.slice();if(!S.cats.inc)S.cats.inc=INC.slice()}
+function home(){return bkNudge()+home0()}
+function bkNudge(){var b=0;try{b=+localStorage.getItem("pl_bk")||0}catch(e){}if(Date.now()-b<6048e5||!S.tx.length)return"";return'<div class="card" style="margin-bottom:10px;border-color:var(--out)"><b>Back up your data</b><div style="color:var(--mute);font-size:13px">No backup in the last 7 days. Go to More, then Copy backup, and save the text in your notes.</div></div>'}
+function sorted(){return S.tx.map(function(t,i){return{t:t,i:i}}).sort(function(a,b){return a.t.date<b.t.date?1:a.t.date>b.t.date?-1:b.i-a.i}).map(function(x){return x.t})}
+function row(t,del){var k=kind(t),c=k==="expense"?"out":k==="income"?"in":"tr",a=acc(t.acc),sg=k==="expense"?"-":k==="income"?"+":"";
+ return'<div class="item"><div class="l"'+(del?' onclick="editTx(\''+t.id+'\')" style="cursor:pointer"':"")+'><i class="bar" style="background:var(--'+(c==="out"?"out":c==="in"?"cash":"bank")+')"></i><div><b>'+esc(title(t))+'</b><small>'+esc(t.date)+(k==="expense"||k==="income"?" · "+esc(a?a.name:""):"")+(t.note?" · "+esc(t.note):"")+'</small></div></div><div style="text-align:right"><b class="'+c+'">'+sg+fmt(t.amt)+'</b>'+(del?'<br><button class="lnk" onclick="editTx(\''+t.id+'\')">Edit</button> · <button class="lnk" onclick="del(\''+t.id+'\')">'+(kill===t.id?"Tap again to delete":"Delete")+'</button>':"")+'</div></div>'}
+function hfilter(){var q=(F.q||"").toLowerCase();return sorted().filter(function(t){return(!F.m||mk(t.date)===F.m)&&(!F.a||t.acc===F.a||t.to===F.a)&&(!q||(title(t)+" "+(t.note||"")+" "+t.amt).toLowerCase().indexOf(q)>=0)})}
+function hbody(){var l=hfilter(),o=0,n=0;l.forEach(function(t){if(t.type==="expense")o+=t.amt;if(t.type==="income")n+=t.amt});
+ return'<p style="color:var(--mute);margin:12px 0 0">'+l.length+' entries · spent <b class="out">'+fmt(o)+'</b> · income <b class="in">'+fmt(n)+'</b></p><div class="card" style="margin-top:8px">'+(l.length?l.map(function(t){return row(t,1)}).join(""):'<div class="empty">Nothing matches.</div>')+'</div>'}
+function hist(){var ms={};S.tx.forEach(function(t){ms[mk(t.date)]=1});var mm=Object.keys(ms).sort().reverse();
+ return'<h1>History</h1><div class="two"><select onchange="F.m=this.value;render()"><option value="">All months</option>'+mm.map(function(m){return'<option value="'+m+'"'+(F.m===m?" selected":"")+'>'+m+'</option>'}).join("")+'</select><select onchange="F.a=this.value;render()"><option value="">All accounts</option>'+S.accounts.map(function(a){return'<option value="'+a.id+'"'+(F.a===a.id?" selected":"")+'>'+esc(a.name)+'</option>'}).join("")+'</select></div><input placeholder="Search note, category or amount" value="'+esc(F.q||"")+'" oninput="F.q=this.value;document.getElementById(\'hl\').innerHTML=hbody()" style="margin-top:10px"><div id="hl">'+hbody()+'</div>'}
+function render(){document.querySelectorAll("nav [data-t]").forEach(function(b){b.className=b.dataset.t===tab?"on":""});
+ var h=tab==="home"?home():tab==="hist"?hist():tab==="cash"?cashT():tab==="rep"?rep():accT();var s=window.scrollY;document.getElementById("app").innerHTML=h;window.scrollTo(0,s);if(tab==="cash")den()}
+function editTx(id){var t=S.tx.filter(function(x){return x.id===id})[0];if(!t)return;editId=id;kill=null;sheet(t)}
+function openAdd(m){editId=null;mode=m==="withdraw"?"withdraw":m==="deposit"?"deposit":(m||mode);sheet()}
+function closeSheet(){editId=null;document.getElementById("sheet").classList.remove("show")}
+function catSel(s){if(s.value!=="__new")return;var n=(prompt("New category name")||"").trim(),k=mode==="income"?"inc":"exp";if(!n){s.selectedIndex=0;return}
+ if(S.cats[k].indexOf(n)>=0){s.value=n;return}S.cats[k].push(n);save();var o=document.createElement("option");o.textContent=n;s.insertBefore(o,s.lastChild);s.value=n}
+function sheet(e){e=e||{};var banks=S.accounts.filter(function(a){return a.type==="bank"}),cash=S.accounts.filter(function(a){return a.type==="cash"}),all=S.accounts,ed=!!editId,m=ed?e.type:mode,h;
+ h=ed?'<h2 style="margin:0">Edit entry</h2>':'<div class="seg">'+[["expense","Expense"],["income","Income"],["transfer","Transfer"],["withdraw","Withdraw"]].map(function(x){return'<button class="'+((m===x[0]||(m==="deposit"&&x[0]==="transfer"))?"on":"")+'" onclick="mode=\''+x[0]+'\';sheet()">'+x[1]+'</button>'}).join("")+'</div>';
+ h+='<label>Amount (₹)</label><input class="amt" id="f_amt" type="number" inputmode="decimal" placeholder="0" value="'+(e.amt||"")+'">';
+ if(m==="expense"||m==="income"){var cl=S.cats[m==="income"?"inc":"exp"].slice();if(e.cat&&cl.indexOf(e.cat)<0)cl.push(e.cat);
+  h+='<label>'+(m==="expense"?"Paid from":"Received in")+'</label><select id="f_acc">'+opts(all,e.acc||(cash[0]&&cash[0].id))+'</select><label>Category</label><select id="f_cat" onchange="catSel(this)">'+cl.map(function(c){return'<option'+(c===e.cat?" selected":"")+'>'+esc(c)+'</option>'}).join("")+'<option value="__new">+ New category…</option></select>'}
+ else{var wd=m==="withdraw"&&!ed,from=wd?banks:all,to=wd?cash:all,fs=ed?e.acc:m==="deposit"?(cash[0]&&cash[0].id):(from[0]&&from[0].id),ts=ed?e.to:m==="deposit"?(banks[0]&&banks[0].id):(to[0]&&to[0].id);
+  if(m==="transfer"&&!ed&&all.length>1&&fs===ts)ts=all[1].id;
+  h+='<label>From</label><select id="f_acc">'+opts(from,fs)+'</select><label>To</label><select id="f_to">'+opts(to,ts)+'</select>'+(ed?"":'<label>Fee or charges (₹, optional)</label><input id="f_fee" type="number" inputmode="decimal" placeholder="0">')}
+ h+='<label>Date</label><input id="f_date" type="date" value="'+(e.date||today())+'"><label>Note (optional)</label><input id="f_note" value="'+esc(e.note||"")+'" placeholder="What was it for?"><button class="btn" onclick="submitTx()">'+(ed?"Save changes":"Save")+'</button><button class="btn alt" onclick="closeSheet()">Cancel</button>';
+ document.getElementById("sheetBody").innerHTML=h;document.getElementById("sheet").classList.add("show");if(!ed)setTimeout(function(){document.getElementById("f_amt").focus()},50)}
+function submitTx(){var amt=+document.getElementById("f_amt").value;if(!(amt>0))return alert("Enter an amount greater than 0.");
+ var ed=editId?S.tx.filter(function(x){return x.id===editId})[0]:null,m=ed?ed.type:(mode==="withdraw"||mode==="deposit"?"transfer":mode),
+ t={id:ed?ed.id:uid(),date:document.getElementById("f_date").value||today(),type:m,amt:amt,acc:document.getElementById("f_acc").value,note:document.getElementById("f_note").value.trim()};
+ if(m==="transfer"){t.to=document.getElementById("f_to").value;if(t.to===t.acc)return alert("Choose two different accounts.");
+  if(ed)Object.assign(ed,t);else{var fee=+document.getElementById("f_fee").value;if(bal(t.acc)<amt&&!confirm("This is more than the balance in the source account. Save anyway?"))return;
+   S.tx.push(t);if(fee>0)S.tx.push({id:uid(),date:t.date,type:"expense",amt:fee,acc:t.acc,cat:"Bank charges",note:"Fee for "+kind(t)})}}
+ else{t.cat=document.getElementById("f_cat").value;if(ed)Object.assign(ed,t);else S.tx.push(t)}
+ editId=null;save();closeSheet();render()}
+function mname(m){return new Date(+m.slice(0,4),+m.slice(5,7)-1,1).toLocaleString("en-IN",{month:"short",year:"numeric"})}
+function pm(m){var d=new Date(+m.slice(0,4),+m.slice(5,7)-2,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
+function rep(){var cur=mk(today()),m=R.m||cur,ms={};ms[cur]=1;S.tx.forEach(function(t){ms[mk(t.date)]=1});var mm=Object.keys(ms).sort().reverse();
+ function inM(t,x){return x==="all"||mk(t.date)===x}
+ function sm(type,x){return S.tx.filter(function(t){return t.type===type&&inM(t,x)}).reduce(function(s,t){return s+t.amt},0)}
+ var by={},cs=0,tot=0;S.tx.forEach(function(t){if(t.type!=="expense"||!inM(t,m))return;var c=t.cat||"Other";by[c]=(by[c]||0)+t.amt;tot+=t.amt;var a=acc(t.acc);if(a&&a.type==="cash")cs+=t.amt});
+ var cats=Object.keys(by).sort(function(a,b){return by[b]-by[a]}),inc=sm("income",m),mx=cats.length?by[cats[0]]:1,cmp="";
+ if(m!=="all"){var p=sm("expense",pm(m));cmp=p?(tot>=p?"▲ ":"▼ ")+fmt(Math.abs(tot-p))+" vs "+mname(pm(m)):"No spending recorded last month"}
+ var tr=[];for(var i=5;i>=0;i--){var d=new Date(+cur.slice(0,4),+cur.slice(5,7)-1-i,1),k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");tr.push({k:k,e:sm("expense",k),i:sm("income",k)})}
+ var tm=Math.max.apply(null,tr.map(function(x){return Math.max(x.e,x.i)}).concat([1]));
+ return'<h1>Reports</h1><select onchange="R.m=this.value;render()"><option value="all"'+(m==="all"?" selected":"")+'>All time</option>'+mm.map(function(x){return'<option value="'+x+'"'+(x===m?" selected":"")+'>'+mname(x)+'</option>'}).join("")+'</select>'+
+ '<div class="split"><div class="pill"><span>Spent</span><b class="out">'+fmt(tot)+'</b></div><div class="pill"><span>Income</span><b class="in">'+fmt(inc)+'</b></div></div>'+
+ '<div class="split"><div class="pill"><span>Income minus spent</span><b>'+fmt(inc-tot)+'</b></div><div class="pill"><span>Paid by cash / bank</span><b style="font-size:15px">'+fmt(cs)+' / '+fmt(tot-cs)+'</b></div></div>'+(cmp?'<p style="color:var(--mute);margin:10px 0 0">Spending '+cmp+'</p>':"")+
+ '<h2>Spending by category</h2><div class="card">'+(cats.length?cats.map(function(c){return'<div style="padding:7px 0"><div class="row"><span>'+esc(c)+'</span><b>'+fmt(by[c])+' <small style="color:var(--mute);font-weight:400">'+Math.round(by[c]/tot*100)+'%</small></b></div><div class="rb"><i style="width:'+Math.max(2,by[c]/mx*100)+'%"></i></div></div>'}).join(""):'<div class="empty">No expenses in this period.</div>')+'</div>'+
+ '<h2>Last 6 months</h2><div class="card">'+tr.map(function(x){return'<div style="padding:7px 0"><div class="row"><span>'+mname(x.k)+'</span><small style="color:var(--mute)">spent '+fmt(x.e)+' · income '+fmt(x.i)+'</small></div><div class="rb"><i style="width:'+(x.e/tm*100)+'%"></i></div><div class="rb g"><i style="width:'+(x.i/tm*100)+'%"></i></div></div>'}).join("")+'</div><p style="color:var(--mute);font-size:12px">Withdrawals and transfers are not counted as spending. Cash is counted when you spend it.</p>'}
+function catCard(){function ch(k){return S.cats[k].map(function(c,i){return'<span class="chip">'+esc(c)+' <button class="lnk" onclick="delCat(\''+k+'\','+i+')">✕</button></span>'}).join("")}
+ return'<h2>Categories</h2><div class="card"><b>Expense</b><div class="chips">'+ch("exp")+'</div><b style="display:block;margin-top:12px">Income</b><div class="chips">'+ch("inc")+'</div><label>Add category</label><div class="two"><input id="nc" placeholder="e.g. Staff advance"><select id="nt"><option value="exp">Expense</option><option value="inc">Income</option></select></div><button class="btn" onclick="addCat()">Add category</button><div style="color:var(--mute);font-size:12px;margin-top:8px">Removing a category does not change old entries.</div></div>'}
+function addCat(){var n=document.getElementById("nc").value.trim(),k=document.getElementById("nt").value;if(!n)return alert("Enter a category name.");if(S.cats[k].indexOf(n)>=0)return alert("That category already exists.");S.cats[k].push(n);save();render()}
+function delCat(k,i){S.cats[k].splice(i,1);save();render()}
+function expCard(){return'<h2>Export</h2><div class="card"><div style="color:var(--mute);font-size:13px">Copies every entry so you can paste it straight into Excel or Google Sheets.</div><textarea id="ex" rows="3"></textarea><button class="btn alt" onclick="csvCopy()">Copy entries for Excel</button></div>'}
+function csvCopy(){var c=function(v){return String(v==null?"":v).replace(/[\t\r\n]/g," ")},r=["Date\tType\tCategory\tAccount\tTo account\tAmount\tNote"];
+ sorted().reverse().forEach(function(t){var a=acc(t.acc),o=acc(t.to);r.push([t.date,kind(t),t.cat||"",a?a.name:"",o?o.name:"",t.amt,t.note||""].map(c).join("\t"))});
+ var x=document.getElementById("ex");x.value=r.join("\n");x.select();try{navigator.clipboard.writeText(x.value)}catch(e){try{document.execCommand("copy")}catch(z){}}}
+function bkCopy(){var t=document.getElementById("bk");t.value=JSON.stringify(S);t.select();try{localStorage.setItem("pl_bk",String(Date.now()))}catch(e){}try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(x){}}}
+function bkRestore(){try{var d=JSON.parse(document.getElementById("bk").value);if(!d.accounts||!d.tx)throw 0;S=d;fix();save();render();alert("Restored.")}catch(e){alert("That backup text is not valid.")}}
+function accT(){return accT0()+catCard()+expCard()+secCard()}
+
 showLock();
-load();render();
+load();fix();render();
 </script>
 </body></html>
