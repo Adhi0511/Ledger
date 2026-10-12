@@ -96,7 +96,7 @@ function home0(){var m=mk(today()),sp=0,inc=0;S.tx.forEach(function(t){if(mk(t.d
  '<div class="split"><div class="pill"><span>Spent this month</span><b class="out">'+fmt(sp)+'</b></div><div class="pill"><span>Income this month</span><b class="in">'+fmt(inc)+'</b></div></div>'+
  '<h2>Accounts</h2><div class="card">'+S.accounts.map(function(a){return'<div class="item"><div><b>'+esc(a.name)+'</b><small>'+(a.type==="cash"?"Cash":"Bank")+'</small></div><b>'+fmt(bal(a.id))+'</b></div>'}).join("")+'</div>'+
  '<h2>Recent</h2><div class="card">'+(r.length?r.map(function(t){return row(t)}).join(""):'<div class="empty">No entries yet. Tap + to add your first expense, income or withdrawal.</div>')+'</div>'}
-function del(id){if(kill===id){S.tx=S.tx.filter(function(t){return t.id!==id});kill=null;save()}else kill=id;render()}
+function del(id){if(kill===id){var gp=(S.tx.filter(function(t){return t.id===id})[0]||{}).grp;S.tx=S.tx.filter(function(t){return t.id!==id&&!(gp&&t.grp===gp)});kill=null;save()}else kill=id;render()}
 var D=[500,200,100,50,20,10,5,2,1],cashSel="";
 function accT0(){return '<h1>Accounts</h1><div class="card">'+S.accounts.map(function(a){var used=S.tx.some(function(t){return t.acc===a.id||t.to===a.id});
  return'<div class="item"><div><b>'+esc(a.name)+'</b><small>'+(a.type==="cash"?"Cash":"Bank")+' · opened with '+fmt(a.open)+'</small></div><div style="text-align:right"><b>'+fmt(bal(a.id))+'</b>'+(used?"":'<br><button class="lnk" onclick="delAcc(\''+a.id+'\')">Remove</button>')+'</div></div>'}).join("")+'</div>'+
@@ -129,7 +129,7 @@ var editId=null,R={m:""};
 function bkNudge(){var b=0;try{b=+localStorage.getItem("pl_bk")||0}catch(e){}if(Date.now()-b<6048e5||!S.tx.length)return"";return'<div class="card" style="margin-bottom:10px;border-color:var(--out)"><b>Back up your data</b><div style="color:var(--mute);font-size:13px">No backup in the last 7 days. Go to More, then Download backup file, or share it to Google Drive.</div></div>'}
 function sorted(){return S.tx.map(function(t,i){return{t:t,i:i}}).sort(function(a,b){return a.t.date<b.t.date?1:a.t.date>b.t.date?-1:b.i-a.i}).map(function(x){return x.t})}
 function row(t,del){var k=kind(t),ln=t.type==="loan",lo=ln&&(t.dir==="lent"||t.dir==="paid"),li=ln&&!lo,c=(k==="expense"||lo)?"out":(k==="income"||li)?"in":"tr",a=acc(t.acc),sg=(k==="expense"||lo)?"-":(k==="income"||li)?"+":"";
- return'<div class="item"><div class="l"'+(del?' onclick="editTx(\''+t.id+'\')" style="cursor:pointer"':"")+'><i class="bar" style="background:var(--'+(c==="out"?"out":c==="in"?"cash":"bank")+')"></i><div><b>'+esc(title(t))+'</b><small>'+esc(t.date)+(k==="expense"||k==="income"||ln?" · "+esc(a?a.name:""):"")+(t.note?" · "+esc(t.note):"")+'</small></div></div><div style="text-align:right"><b class="'+c+'">'+sg+fmt(t.amt)+'</b>'+(del?'<br><button class="lnk" onclick="editTx(\''+t.id+'\')">Edit</button> · <button class="lnk" onclick="del(\''+t.id+'\')">'+(kill===t.id?"Tap again to delete":"Delete")+'</button>':"")+'</div></div>'}
+ return'<div class="item"><div class="l"'+(del?' onclick="editTx(\''+t.id+'\')" style="cursor:pointer"':"")+'><i class="bar" style="background:var(--'+(c==="out"?"out":c==="in"?"cash":"bank")+')"></i><div><b>'+esc(title(t))+'</b><small>'+esc(t.date)+(k==="expense"||k==="income"||ln?" · "+esc(a?a.name:""):"")+(t.note?" · "+esc(t.note):"")+(t.grp?" · split":"")+'</small></div></div><div style="text-align:right"><b class="'+c+'">'+sg+fmt(t.amt)+'</b>'+(del?'<br><button class="lnk" onclick="editTx(\''+t.id+'\')">Edit</button> · <button class="lnk" onclick="del(\''+t.id+'\')">'+(kill===t.id?"Tap again to delete"+(t.grp?" (all parts)":""):"Delete")+'</button>':"")+'</div></div>'}
 function hfilter(){var q=(F.q||"").toLowerCase();return sorted().filter(function(t){return(!F.m||mk(t.date)===F.m)&&(!F.a||t.acc===F.a||t.to===F.a)&&(!q||(title(t)+" "+(t.note||"")+" "+t.amt).toLowerCase().indexOf(q)>=0)})}
 function hbody(){var l=hfilter(),o=0,n=0;l.forEach(function(t){if(t.type==="expense")o+=t.amt;if(t.type==="income")n+=t.amt});
  return'<p style="color:var(--mute);margin:12px 0 0">'+l.length+' entries · spent <b class="out">'+fmt(o)+'</b> · income <b class="in">'+fmt(n)+'</b></p><div class="card" style="margin-top:8px">'+(l.length?l.map(function(t){return row(t,1)}).join(""):'<div class="empty">Nothing matches.</div>')+'</div>'}
@@ -218,7 +218,7 @@ function cashT(){var cs=S.accounts.filter(function(a){return a.type==="cash"});i
  return h+'<h2>Recent cash movement</h2><div class="card">'+(mv.length?mv.map(function(t){return row(t)}).join(""):'<div class="empty">No cash movement yet.</div>')+'</div>'}
 function wlSave(){var id=cashSel,c=readMap("cn_");if(wlOn(id)){var d=dmap(id),b={};DN.forEach(function(x){b[x[0]]=(c[x[0]]||0)-(d[x[0]]||0)});S.wallet[id].base=b}else S.wallet[id]={base:c};wedit=false;save();render()}
 function wlFix(){var id=cashSel,df=Math.round((dsum(inv(id))-bal(id))*100)/100;if(!df)return;S.tx.push({id:uid(),date:today(),type:df>0?"income":"expense",amt:Math.abs(df),acc:id,cat:"Cash adjustment",note:"Matched to wallet notes"});save();render()}
-function denUI(){var box=document.getElementById("den_box");if(!box)return;var ex=editId?S.tx.filter(function(x){return x.id===editId})[0]:null,m=ex?(ex.type==="loan"?mode:ex.type):mode,A=document.getElementById("f_acc"),T=document.getElementById("f_to"),a=A&&A.value,t=T&&T.value,h="";
+function denUI(){var box=document.getElementById("den_box");if(!box)return;var ex=editId?S.tx.filter(function(x){return x.id===editId})[0]:null,m=ex?(ex.type==="loan"?mode:ex.type):mode,A=document.getElementById("f_acc"),T=document.getElementById("f_to"),a=denAcc(),t=T&&T.value,h="";
  function sec(ti,p,v){return'<div class="card" style="margin-top:12px"><b>'+ti+'</b><div class="dg" style="margin-top:8px">'+cntGrid(p,v)+'</div></div>'}
  function cw(x){return x&&acc(x)&&acc(x).type==="cash"&&wlOn(x)}
  if(m==="expense"){if(cw(a))h=sec("Notes and coins you gave","g_",ex&&ex.gv)+sec("Change you received","c_",ex&&ex.ch)}
@@ -226,16 +226,16 @@ function denUI(){var box=document.getElementById("den_box");if(!box)return;var e
  else{if(cw(a))h+=sec("Notes and coins you handed over","g_",ex&&ex.gv);if(cw(t))h+=sec("Notes and coins you received","r_",ex&&ex.rc)}
  if(h){var sk=ex&&!(ex.gv||ex.ch||ex.rc);h+='<label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="den_skip" style="width:auto;margin:0"'+(sk?" checked":"")+' onchange="denMsg()"> Skip note details (wallet count may go out of sync)</label><div id="den_msg" style="font-size:13px;margin-top:6px"></div>'}
  box.innerHTML=h;denMsg()}
-function denNeeds(){if(!document.getElementById("den_skip"))return null;var amt=+document.getElementById("f_amt").value||0,hg=!!document.getElementById("g_500"),hc=!!document.getElementById("c_500"),hr=!!document.getElementById("r_500"),sg=dsum(readMap("g_")),sc=dsum(readMap("c_")),sr=dsum(readMap("r_"));
+function denNeeds(){if(!document.getElementById("den_skip"))return null;var amt=denAmt(),hg=!!document.getElementById("g_500"),hc=!!document.getElementById("c_500"),hr=!!document.getElementById("r_500"),sg=dsum(readMap("g_")),sc=dsum(readMap("c_")),sr=dsum(readMap("r_"));
  if(hg&&hc){if(!sg)return{ok:false,msg:"Enter the notes you gave."};if(sg<amt)return{ok:false,msg:"Notes given ("+fmt(sg)+") are less than the amount "+fmt(amt)+"."};if(sg-sc!==amt)return{ok:false,msg:"Change should be "+fmt(sg-amt)+" but you entered "+fmt(sc)+"."};return{ok:true,msg:"Given "+fmt(sg)+" minus change "+fmt(sc)+" = "+fmt(amt)+" ✓"}}
  if(hg&&sg!==amt)return{ok:false,msg:"Notes handed over total "+fmt(sg)+" but the amount is "+fmt(amt)+"."};
  if(hr&&sr!==amt)return{ok:false,msg:"Notes received total "+fmt(sr)+" but the amount is "+fmt(amt)+"."};
  return{ok:true,msg:"Note counts match the amount ✓"}}
 function denMsg(){var el=document.getElementById("den_msg");if(!el)return;if(document.getElementById("den_skip").checked){el.style.color="var(--mute)";el.textContent="The wallet count will not be updated for this entry.";return}
  var nd=denNeeds(),w="";el.style.color=nd.ok?"var(--cash)":"var(--out)";
- if(!editId&&document.getElementById("g_500")){var iv=inv(document.getElementById("f_acc").value),g=readMap("g_");DN.forEach(function(d){if((g[d[0]]||0)>(iv[d[0]]||0))w+=" You only have "+(iv[d[0]]||0)+" × "+d[1]+" in the wallet."})}
+ if(!editId&&document.getElementById("g_500")){var iv=inv(denAcc()),g=readMap("g_");DN.forEach(function(d){if((g[d[0]]||0)>(iv[d[0]]||0))w+=" You only have "+(iv[d[0]]||0)+" × "+d[1]+" in the wallet."})}
  el.textContent=nd.msg+w}
-function submitTx(){var amt=+document.getElementById("f_amt").value;if(!(amt>0))return alert("Enter an amount greater than 0.");
+function submitTx(){if(splitOn&&!editId&&mode==="expense")return submitSplit();var amt=+document.getElementById("f_amt").value;if(!(amt>0))return alert("Enter an amount greater than 0.");
  var ed=editId?S.tx.filter(function(x){return x.id===editId})[0]:null,m=ed?ed.type:(mode==="withdraw"||mode==="deposit"?"transfer":mode),
  t={id:ed?ed.id:uid(),date:document.getElementById("f_date").value||today(),type:m,amt:amt,acc:document.getElementById("f_acc").value,note:document.getElementById("f_note").value.trim()},nd=denNeeds(),use=nd&&!document.getElementById("den_skip").checked;
  if(use&&!nd.ok)return alert(nd.msg);
@@ -248,7 +248,7 @@ function submitTx(){var amt=+document.getElementById("f_amt").value;if(!(amt>0))
 
 /* v4: category search, backup files, quick + recurring entries */
 var recPend=null,CL=[];
-function closeSheet(){editId=null;recPend=null;catClose();document.getElementById("sheet").classList.remove("show")}
+function closeSheet(){editId=null;recPend=null;splitOn=false;catClose();document.getElementById("sheet").classList.remove("show")}
 function catKind(){var ed=editId?S.tx.filter(function(x){return x.id===editId})[0]:null;return ed?ed.type:mode}
 function catList(k){var n={};S.tx.forEach(function(t){if(t.type===k&&t.cat)n[t.cat]=(n[t.cat]||0)+1});return S.cats[k==="income"?"inc":"exp"].slice().sort(function(a,b){return(n[b]||0)-(n[a]||0)})}
 function catOpen(){var d=document.createElement("div");d.className="sheet show";d.id="catpick";d.style.zIndex=8;d.innerHTML='<div><input id="cq" placeholder="Search or add a category" autocomplete="off" oninput="catFilter()"><div id="cl"></div></div>';d.addEventListener("click",function(e){if(e.target===d)catClose()});document.body.appendChild(d);catFilter();document.getElementById("cq").focus()}
@@ -263,7 +263,7 @@ function catAdd(){var q=document.getElementById("cq").value.trim(),k=catKind()==
 function sheet(e){sheet0(e);["f_acc","f_to"].forEach(function(i){var x=document.getElementById(i);if(x)x.setAttribute("onchange","denUI()")});var a=document.getElementById("f_amt");if(a)a.setAttribute("oninput","denMsg()");
  var d=document.getElementById("f_date"),box=document.createElement("div");box.id="den_box";d.parentNode.insertBefore(box,d.previousElementSibling);denUI();
  var sel=document.getElementById("f_cat");if(sel){var v=(e&&e.cat)||catList(catKind())[0]||sel.value,h=document.createElement("div");h.innerHTML='<input type="hidden" id="f_cat" value="'+esc(v)+'"><button type="button" class="catbtn" onclick="catOpen()"><span id="catlbl">'+esc(v)+'</span><span>▾</span></button>';sel.parentNode.replaceChild(h,sel)}
- if(!editId)document.getElementById("sheetBody").insertAdjacentHTML("beforeend",'<button class="btn alt" onclick="saveTpl()">Save as quick entry</button>')}
+ if(!editId)document.getElementById("sheetBody").insertAdjacentHTML("beforeend",'<button class="btn alt" onclick="saveTpl()">Save as quick entry</button>');splitInit()}
 function saveTpl(){var m=mode==="withdraw"||mode==="deposit"?"transfer":mode,n=(prompt("Name for this quick entry")||"").trim();if(!n)return;var g=function(i){var x=document.getElementById(i);return x?x.value:""};
  S.tpl.push({id:uid(),name:n,type:m,amt:+g("f_amt")||0,acc:g("f_acc"),to:g("f_to")||undefined,cat:g("f_cat")||undefined,note:g("f_note")});save();alert("Saved. It now appears on the Home screen.")}
 function useTpl(id){var t=S.tpl.filter(function(x){return x.id===id})[0];if(!t)return;editId=null;recPend=null;mode=t.type;sheet({amt:t.amt||"",acc:t.acc,to:t.to,cat:t.cat,note:t.note})}
@@ -323,6 +323,38 @@ function loanSave(){var n=document.getElementById("l_n").value.trim(),amt=+docum
 function editTx(id){var t=S.tx.filter(function(x){return x.id===id})[0];if(!t)return;kill=null;editId=id;if(t.type==="loan"){var p=S.ppl.filter(function(x){return x.id===t.pid})[0];loanSheet(t,p?p.name:"");return}sheet(t)}
 function home(){return bkNudge()+dueCard()+budCard()+tplBar()+pplBar()+home0()}
 function accT(){return accT0()+fileCard()+budMgr()+catCard()+tplCard()+recCard()+expCard()+secCard()}
+
+/* v6: split payment across accounts */
+var splitOn=false,SP=[];
+function dacc(i){var a=document.getElementById("sa_"+i);return a?a.value:""}
+function denAcc(){if(splitOn){for(var i=0;i<SP.length;i++){var a=dacc(i);if(a&&acc(a)&&acc(a).type==="cash"&&wlOn(a))return a}return ""}var x=document.getElementById("f_acc");return x?x.value:""}
+function denAmt(){if(splitOn){for(var i=0;i<SP.length;i++){var a=dacc(i);if(a&&acc(a)&&acc(a).type==="cash"&&wlOn(a))return +document.getElementById("sm_"+i).value||0}return 0}var x=document.getElementById("f_amt");return x?+x.value||0:0}
+function splitInit(){splitOn=false;SP=[];var a=document.getElementById("f_acc"),t=document.getElementById("f_amt");if(editId||mode!=="expense"||!a||!document.getElementById("f_cat"))return;
+ t.setAttribute("oninput","splitTot()");a.insertAdjacentHTML("afterend",'<label style="display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:10px"><input type="checkbox" id="split_chk" style="width:auto;margin:0" onchange="splitToggle()"> Split payment across accounts (e.g. UPI + cash)</label><div id="split_box"></div>')}
+function splitToggle(){var chk=document.getElementById("split_chk"),a=document.getElementById("f_acc"),lab=a.previousElementSibling;
+ if(chk.checked&&S.accounts.length<2){chk.checked=false;return alert("Add a second account first (More, then Accounts).")}
+ splitOn=chk.checked;a.style.display=splitOn?"none":"";if(lab)lab.style.display=splitOn?"none":"";
+ if(splitOn){var bk=S.accounts.filter(function(x){return x.type==="bank"}),cs=S.accounts.filter(function(x){return x.type==="cash"}),a0=(bk[0]||S.accounts[0]).id,a1=(cs[0]&&cs[0].id!==a0?cs[0]:S.accounts.filter(function(x){return x.id!==a0})[0]).id;
+  SP=[{a:a0,m:"",man:false},{a:a1,m:"",man:false}];splitDraw()}else{SP=[];document.getElementById("split_box").innerHTML="";denUI()}}
+function splitDraw(){document.getElementById("split_box").innerHTML=SP.map(function(r,i){return'<div class="two" style="margin-top:8px"><select id="sa_'+i+'" onchange="splitSel('+i+')">'+opts(S.accounts,r.a)+'</select><div style="display:flex;gap:6px;align-items:center"><input id="sm_'+i+'" type="number" inputmode="decimal" placeholder="₹ amount" value="'+(r.m===""?"":r.m)+'" oninput="splitIn('+i+')">'+(SP.length>2?'<button class="lnk" onclick="splitDel('+i+')">✕</button>':"")+'</div></div>'}).join("")+(SP.length<4?'<button class="lnk" onclick="splitAdd()" style="margin-top:6px">+ Add another account</button>':"")+'<div id="split_msg" style="font-size:13px;margin-top:6px"></div>';splitFill();splitMsg();denUI()}
+function splitSel(i){SP[i].a=dacc(i);splitMsg();denUI()}
+function splitIn(i){var v=document.getElementById("sm_"+i).value;SP[i].m=v===""?"":+v;SP[i].man=true;splitFill();splitMsg();denMsg()}
+function splitTot(){if(splitOn){splitFill();splitMsg()}denMsg()}
+function splitFill(){var l=SP.length-1;if(l<1||SP[l].man)return;var t=+document.getElementById("f_amt").value||0,s=0;for(var i=0;i<l;i++)s+=+SP[i].m||0;var v=Math.round((t-s)*100)/100;SP[l].m=v>0?v:"";var el=document.getElementById("sm_"+l);if(el)el.value=SP[l].m}
+function splitAdd(){SP[SP.length-1].man=true;var used={};SP.forEach(function(r){used[r.a]=1});var n=S.accounts.filter(function(x){return!used[x.id]})[0];SP.push({a:(n||S.accounts[0]).id,m:"",man:false});splitDraw()}
+function splitDel(i){SP.splice(i,1);SP[SP.length-1].man=false;splitDraw()}
+function splitMsg(){var el=document.getElementById("split_msg");if(!el)return;var t=Math.round((+document.getElementById("f_amt").value||0)*100)/100,s=0;SP.forEach(function(r){s+=+r.m||0});s=Math.round(s*100)/100;
+ if(!t){el.style.color="var(--mute)";el.textContent="Enter the total amount above."}
+ else if(Math.abs(s-t)<.005){el.style.color="var(--cash)";el.textContent=SP.map(function(r){return fmt(+r.m||0)}).join(" + ")+" = "+fmt(t)+" ✓"}
+ else{el.style.color="var(--out)";el.textContent="Parts add up to "+fmt(s)+" but the total is "+fmt(t)+"."}}
+function submitSplit(){var tot=Math.round((+document.getElementById("f_amt").value||0)*100)/100;if(!(tot>0))return alert("Enter an amount greater than 0.");
+ var rows=[],seen={};for(var i=0;i<SP.length;i++){var a=dacc(i),m=Math.round((+document.getElementById("sm_"+i).value||0)*100)/100;if(m>0){if(seen[a])return alert("Each account can appear only once in a split.");seen[a]=1;rows.push({a:a,m:m})}}
+ var s=0;rows.forEach(function(r){s+=r.m});if(Math.abs(s-tot)>.005)return alert("The parts add up to "+fmt(s)+" but the total is "+fmt(tot)+".");
+ if(rows.length<2)return alert("Enter an amount for at least two accounts, or turn off Split payment.");
+ var da=denAcc(),cr=rows.filter(function(r){return r.a===da})[0],nd=cr?denNeeds():null,use=nd&&!document.getElementById("den_skip").checked;if(use&&!nd.ok)return alert(nd.msg);
+ var gid=uid(),dt=document.getElementById("f_date").value||today(),nt=document.getElementById("f_note").value.trim(),ct=document.getElementById("f_cat").value;
+ rows.forEach(function(r){var t={id:uid(),date:dt,type:"expense",amt:r.m,acc:r.a,cat:ct,note:nt,grp:gid};if(use&&r.a===da){var g=readMap("g_"),c=readMap("c_");if(dsum(g))t.gv=g;if(dsum(c))t.ch=c}S.tx.push(t)});
+ splitOn=false;SP=[];editId=null;save();closeSheet();render()}
 
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 showLock();
