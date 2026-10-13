@@ -297,7 +297,6 @@ function budCard(){var m=mk(today()),h="";Object.keys(S.bud).forEach(function(c)
 function budMgr(){var ks=Object.keys(S.bud);return'<h2>Budgets</h2><div class="card">'+(ks.length?ks.map(function(c,i){return'<div class="item"><div><b>'+esc(c)+'</b><small>'+fmt(S.bud[c])+' per month</small></div><button class="lnk" onclick="budDel('+i+')">Remove</button></div>'}).join(""):'<div class="empty">No budgets yet.</div>')+'<label>Category</label><select id="bc">'+S.cats.exp.map(function(c){return'<option>'+esc(c)+'</option>'}).join("")+'</select><label>Monthly limit (₹)</label><input id="ba" type="number" inputmode="decimal"><button class="btn" onclick="budSet()">Set budget</button></div>'}
 function budSet(){var c=document.getElementById("bc").value,a=+document.getElementById("ba").value;if(!(a>0))return alert("Enter a monthly limit above 0.");S.bud[c]=a;save();render()}
 function budDel(i){delete S.bud[Object.keys(S.bud)[i]];save();render()}
-function rep(){return R.c?repCat():rep0()+budRep()}
 function repCat(){var m=R.m||mk(today()),c=R.c,l=sorted().filter(function(t){return t.type==="expense"&&t.cat===c&&(m==="all"||mk(t.date)===m)}),tot=l.reduce(function(s,t){return s+t.amt},0),pv=m==="all"?null:budSp(c,pm(m)),b=S.bud[c];
  return'<button class="lnk" onclick="R.c=null;render()">← Back to reports</button><h1>'+esc(c)+' · '+(m==="all"?"All time":mname(m))+'</h1><div class="big out">'+fmt(tot)+'</div><p style="color:var(--mute)">'+l.length+' entries'+(pv===null?"":" · last month "+fmt(pv))+(b?" · budget "+fmt(b):"")+'</p><div class="card">'+(l.length?l.map(function(t){return row(t,1)}).join(""):'<div class="empty">No entries.</div>')+'</div>'}
 function pBal(id){var b=0;S.tx.forEach(function(t){if(t.type==="loan"&&t.pid===id)b+=(t.dir==="lent"||t.dir==="paid"?1:-1)*t.amt});return b}
@@ -355,6 +354,44 @@ function submitSplit(){var tot=Math.round((+document.getElementById("f_amt").val
  var gid=uid(),dt=document.getElementById("f_date").value||today(),nt=document.getElementById("f_note").value.trim(),ct=document.getElementById("f_cat").value;
  rows.forEach(function(r){var t={id:uid(),date:dt,type:"expense",amt:r.m,acc:r.a,cat:ct,note:nt,grp:gid};if(use&&r.a===da){var g=readMap("g_"),c=readMap("c_");if(dsum(g))t.gv=g;if(dsum(c))t.ch=c}S.tx.push(t)});
  splitOn=false;SP=[];editId=null;save();closeSheet();render()}
+
+/* v7: report periods and custom date range */
+function dd(s){return new Date(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10))}
+function ds(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function addD(s,n){var d=dd(s);d.setDate(d.getDate()+n);return ds(d)}
+function d2(s){return s.slice(8,10)+"/"+s.slice(5,7)+"/"+s.slice(0,4)}
+function fyStart(s){var y=+s.slice(0,4);return(+s.slice(5,7)>=4?y:y-1)+"-04-01"}
+function periodOf(){var t=today(),p=R.p,y=+fyStart(t).slice(0,4);
+ if(p==="7d")return[addD(t,-6),t,"Last 7 days"];
+ if(p==="30d")return[addD(t,-29),t,"Last 30 days"];
+ if(p==="q"){var m=+t.slice(5,7),k=(m-4+12)%12,sm=((3+Math.floor(k/3)*3)%12)+1,sy=sm<=m?+t.slice(0,4):+t.slice(0,4)-1;return[sy+"-"+String(sm).padStart(2,"0")+"-01",ds(new Date(sy,sm+2,0)),"This quarter (financial year)"]}
+ if(p==="fy")return[y+"-04-01",(y+1)+"-03-31","This financial year ("+y+"-"+String(y+1).slice(2)+")"];
+ if(p==="pfy")return[(y-1)+"-04-01",y+"-03-31","Last financial year ("+(y-1)+"-"+String(y).slice(2)+")"];
+ var f=R.f||t.slice(0,8)+"01",e=R.t||t;if(f>e){var x=f;f=e;e=x}return[f,e,"Custom range"]}
+function setP(p){R.p=p;R.c=null;if(p==="custom"){R.f=R.f||today().slice(0,8)+"01";R.t=R.t||today()}render()}
+function repTabs(){return'<div class="tplrow">'+[["","Month"],["7d","Last 7 days"],["30d","Last 30 days"],["q","This quarter"],["fy","This FY"],["pfy","Last FY"],["custom","Custom dates"]].map(function(x){var on=(R.p||"")===x[0];return'<button style="'+(on?"background:var(--bank);color:#fff;border-color:var(--bank)":"")+'" onclick="setP(\''+x[0]+'\')">'+x[1]+'</button>'}).join("")+'</div>'}
+function rep(){return repTabs()+(R.p?repP():(R.c?repCat():rep0()+budRep()))}
+function sumX(a){return a.reduce(function(s,x){return s+x.amt},0)}
+function repP(){var pr=periodOf(),f=pr[0],t=pr[1],lab=pr[2],tdy=today(),inR=function(x,a,b){return x.date>=a&&x.date<=b},
+ ex=S.tx.filter(function(x){return x.type==="expense"&&inR(x,f,t)});
+ if(R.c){var l=sorted().filter(function(x){return x.type==="expense"&&x.cat===R.c&&inR(x,f,t)});
+  return'<button class="lnk" onclick="R.c=null;render()">← Back to report</button><h1>'+esc(R.c)+' · '+lab+'</h1><div class="big out">'+fmt(sumX(l))+'</div><p style="color:var(--mute)">'+l.length+' entries · '+d2(f)+' to '+d2(t)+'</p><div class="card">'+(l.length?l.map(function(x){return row(x,1)}).join(""):'<div class="empty">No entries.</div>')+'</div>'}
+ var tot=sumX(ex),cs=0,by={},ac={};ex.forEach(function(x){var c=x.cat||"Other",a=acc(x.acc),n=a?a.name:"?";by[c]=(by[c]||0)+x.amt;ac[n]=(ac[n]||0)+x.amt;if(a&&a.type==="cash")cs+=x.amt});
+ var inc=sumX(S.tx.filter(function(x){return x.type==="income"&&inR(x,f,t)})),eff=t>tdy?tdy:t,nd=Math.max(1,Math.round((dd(eff)-dd(f))/864e5)+1),L=Math.round((dd(t)-dd(f))/864e5)+1,pf=addD(f,-L),pt=addD(f,-1),pv=sumX(S.tx.filter(function(x){return x.type==="expense"&&inR(x,pf,pt)}));
+ var cmp=pv?(tot>=pv?"▲ ":"▼ ")+fmt(Math.abs(tot-pv))+" vs the previous "+L+" days ("+d2(pf)+" to "+d2(pt)+")":"No spending recorded in the previous "+L+" days",
+ cats=Object.keys(by).sort(function(a,b){return by[b]-by[a]}),mx=cats.length?by[cats[0]]:1,top=ex.slice().sort(function(a,b){return b.amt-a.amt}).slice(0,5),an=Object.keys(ac).sort(function(a,b){return ac[b]-ac[a]});RC=cats;
+ return(R.p==="custom"?'<div class="two"><div><label>From</label><input type="date" value="'+R.f+'" onchange="R.f=this.value||R.f;render()"></div><div><label>To</label><input type="date" value="'+R.t+'" onchange="R.t=this.value||R.t;render()"></div></div>':"")+
+ '<h1 style="margin-top:12px">'+lab+'</h1><p style="color:var(--mute);margin:0 0 6px">'+d2(f)+' to '+d2(t)+(t>tdy?" (to date)":"")+'</p>'+
+ '<div class="split"><div class="pill"><span>Spent</span><b class="out">'+fmt(tot)+'</b></div><div class="pill"><span>Income</span><b class="in">'+fmt(inc)+'</b></div></div>'+
+ '<div class="split"><div class="pill"><span>Income minus spent</span><b>'+fmt(inc-tot)+'</b></div><div class="pill"><span>Average per day</span><b>'+fmt(tot/nd)+'</b></div></div>'+
+ '<p style="color:var(--mute);margin:10px 0 0">Paid by cash '+fmt(cs)+' · by bank '+fmt(tot-cs)+'<br>Spending '+cmp+'</p>'+
+ '<h2>Spending by category</h2><div class="card">'+(cats.length?cats.map(function(c,i){return'<div style="padding:7px 0;cursor:pointer" onclick="R.c=RC['+i+'];render()"><div class="row"><span>'+esc(c)+'</span><b>'+fmt(by[c])+' <small style="color:var(--mute);font-weight:400">'+Math.round(by[c]/tot*100)+'%</small></b></div><div class="rb"><i style="width:'+Math.max(2,by[c]/mx*100)+'%"></i></div></div>'}).join(""):'<div class="empty">No expenses in this period.</div>')+'</div>'+
+ (top.length?'<h2>Largest expenses</h2><div class="card">'+top.map(function(x){return row(x,1)}).join("")+'</div>':"")+
+ (an.length?'<h2>Spent from each account</h2><div class="card">'+an.map(function(n){return'<div class="item"><span>'+esc(n)+'</span><b>'+fmt(ac[n])+'</b></div>'}).join("")+'</div>':"")+
+ '<button class="btn alt" onclick="csvP()">Copy this period for Excel</button><p style="color:var(--mute);font-size:12px">Withdrawals, transfers and lent or borrowed money are not counted as spending.</p>'}
+function csvP(){var pr=periodOf(),f=pr[0],t=pr[1],c=function(v){return String(v==null?"":v).replace(/[\t\r\n]/g," ")},r=["Date\tType\tCategory\tAccount\tAmount\tNote"];
+ sorted().reverse().filter(function(x){return(x.type==="expense"||x.type==="income")&&x.date>=f&&x.date<=t}).forEach(function(x){var a=acc(x.acc);r.push([x.date,x.type,x.cat||"",a?a.name:"",x.amt,x.note||""].map(c).join("\t"))});
+ try{navigator.clipboard.writeText(r.join("\n")).then(function(){alert("Copied "+(r.length-1)+" entries. Paste them into Excel or Google Sheets.")},function(){alert("Could not copy on this device.")})}catch(e){alert("Could not copy on this device.")}}
 
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 showLock();
